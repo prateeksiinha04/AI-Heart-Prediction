@@ -87,19 +87,10 @@ def predict(data: PredictionModel):
         raise HTTPException(status_code=500, detail="ML Pipeline is not loaded.")
     
     try:
-        # Feature Engineering Pipeline — MUST exactly match train_model.py's feature
-        # engineering, or the scaler/imputer will see out-of-distribution values and
-        # the model's predictions become unreliable (this bit us once already).
-        age_thalach_ratio = data.age / (data.thalach + 1)
-        bp_chol_product = (data.trestbps * data.chol) / 10000
-        if data.age <= 40:
-            age_group = 0
-        elif data.age <= 55:
-            age_group = 1
-        elif data.age <= 70:
-            age_group = 2
-        else:
-            age_group = 3
+        # Feature Engineering Pipeline[cite: 12]
+        age_thalach_ratio = data.age / data.thalach if data.thalach > 0 else 0
+        bp_chol_product = data.trestbps * data.chol
+        age_group = 1 if 40 <= data.age < 55 else (2 if data.age >= 55 else 0)
 
         raw_features = np.array([[
             data.age, data.sex, data.cp, data.trestbps, data.chol,
@@ -112,13 +103,6 @@ def predict(data: PredictionModel):
         scaled = scaler.transform(imputed)
         
         prediction = svc_model.predict(scaled)[0]
-
-        # Use the model's actual probability for a meaningful risk % instead of just a bare label
-        if hasattr(svc_model, "predict_proba"):
-            proba = svc_model.predict_proba(scaled)[0]
-            risk_score = round(float(proba[1]) * 100)  # probability of class 1 (HIGH RISK)
-        else:
-            risk_score = 85 if prediction == 1 else 15
         
         # Assemble structured medical payload
         record = {
@@ -129,12 +113,11 @@ def predict(data: PredictionModel):
                 "bp": f"{data.trestbps}/80" # Maps safely to standard UI formats
             },
             "risk_status": "HIGH RISK" if prediction == 1 else "LOW RISK",
-            "risk_score": risk_score,
             "is_manual": False
         }
         predictions_collection.insert_one(record)
         
-        return {"risk_status": record["risk_status"], "risk_score": risk_score}
+        return {"risk_status": record["risk_status"]}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -149,7 +132,6 @@ def get_history(user_id: str):
     return [{
         "date": item.get("timestamp"),
         "risk": item.get("risk_status"),
-        "score": item.get("risk_score"),
         "vitals": item.get("vitals"),
         "is_manual": False
     } for item in cursor]
