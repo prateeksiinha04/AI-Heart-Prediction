@@ -27,6 +27,8 @@
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; }
         .empty-state i { font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem; }
     </style>
+    <link rel="stylesheet" href="sidebar.css">
+    <link rel="stylesheet" href="professional.css">
 </head>
 <body class="records-page">
 
@@ -41,23 +43,23 @@
                     </div>
                 </div>
             </a>
-            <nav class="sidebar-menu">
-                <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-house"></i> <span class="nav-text">Dashboard</span></a>
-                <a href="heart-prediction.html" class="menu-item"><i class="fa-solid fa-user-doctor"></i> <span class="nav-text">Health Prediction</span></a>
-                <a href="my-history.html" class="menu-item"><i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">My History</span></a>
-                <a href="health-records.html" class="menu-item active"><i class="fa-solid fa-folder-medical"></i> <span class="nav-text">Health Records</span></a>
-                <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line"></i> <span class="nav-text">Charts & Trends</span></a>
-                <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart-circle-check"></i> <span class="nav-text">Recommendations</span></a>
-                <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear"></i> <span class="nav-text">Patient Profile</span></a>
-                <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="nav-text">Logout</span></a>
+            <nav class="sidebar-menu" aria-label="Main navigation">
+                <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-house" aria-hidden="true"></i> <span class="nav-text">Dashboard</span></a>
+                <a href="heart-prediction.html" class="menu-item"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> <span class="nav-text">Health Prediction</span></a>
+                <a href="my-history.html" class="menu-item"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span class="nav-text">My History</span></a>
+                <a href="health-records.html" class="menu-item active" aria-current="page"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> <span class="nav-text">Health Records</span></a>
+                <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span class="nav-text">Charts & Trends</span></a>
+                <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart" aria-hidden="true"></i> <span class="nav-text">Recommendations</span></a>
+                <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span class="nav-text">Patient Profile</span></a>
+                <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> <span class="nav-text">Logout</span></a>
             </nav>
         </aside>
 
         <main class="main-content">
             <header class="content-header">
                 <div class="user-greeting">
-                    <h1>AI Diagnostic Records</h1>
-                    <p>View your official automated AI health evaluations and risk score assessments.</p>
+                    <h1>Your Health Records</h1>
+                    <p>Review your saved health risk estimates and assessment details. Contact your healthcare professional with questions about your results.</p>
                 </div>
                 <div class="header-actions">
                     <div class="profile-avatar">
@@ -70,7 +72,7 @@
             <div class="records-controls">
                 <div class="search-bar">
                     <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
-                    <input type="text" id="searchInput" placeholder="Search AI assessments by title, score, or date...">
+                    <input type="text" id="searchInput" placeholder="Search health risk estimates by status, percentage, or date...">
                 </div>
             </div>
 

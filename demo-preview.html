@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Dashboard Preview | HealthPredict AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body.demo-preview-page { min-height: 100vh; padding: clamp(1rem, 4vw, 3rem); background: #f4f7fb; color: #0f172a; }
+        .demo-preview { width: min(1100px, 100%); margin: 0 auto; }
+        .demo-banner { display: flex; align-items: flex-start; gap: .85rem; margin-bottom: 1.5rem; padding: 1rem 1.1rem; border: 1px solid #fcd34d; border-radius: 12px; background: #fffbeb; color: #78350f; }
+        .demo-banner p { margin: .25rem 0 0; line-height: 1.5; }
+        .demo-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+        .demo-header h1 { margin: 0 0 .4rem; font-size: clamp(1.6rem, 4vw, 2rem); }
+        .demo-header p { margin: 0; color: #64748b; }
+        .demo-tag { padding: .4rem .7rem; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+        .demo-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .demo-card { padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(15,23,42,.04); }
+        .demo-label { color: #64748b; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+        .demo-value { margin-top: .65rem; font-size: 1.65rem; font-weight: 700; }
+        .demo-value small { color: #64748b; font-size: .85rem; font-weight: 500; }
+        .demo-content { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+        .demo-content h2 { margin: 0 0 1rem; font-size: 1.05rem; }
+        .demo-chart { width: 100%; height: 180px; }
+        .demo-risk { display: inline-flex; padding: .35rem .65rem; border-radius: 999px; background: #dcfce7; color: #166534; font-size: .82rem; font-weight: 700; }
+        .demo-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+        .demo-actions a { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1rem; border: 1px solid #2563eb; border-radius: 9px; background: #2563eb; color: white; font-weight: 600; text-decoration: none; }
+        .demo-actions a.secondary { background: white; color: #1d4ed8; }
+        @media (max-width: 760px) { .demo-stats { grid-template-columns: repeat(2, minmax(0,1fr)); } .demo-content { grid-template-columns: 1fr; } }
+        @media (max-width: 420px) { .demo-header { flex-direction: column; } .demo-stats { gap: .65rem; } .demo-card { padding: .9rem; } .demo-value { font-size: 1.35rem; } }
+    </style>
+    <link rel="stylesheet" href="professional.css">
+</head>
+<body class="demo-preview-page">
+    <main class="demo-preview">
+        <div class="demo-banner" role="note">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <div><strong>Sample-only preview</strong><p>All values are fictional examples. This page does not sign you in, access or save patient information, or provide a patient ID.</p></div>
+        </div>
+        <header class="demo-header">
+            <div><h1>HealthPredict AI Dashboard</h1><p>Preview the patient dashboard with sample data.</p></div>
+            <span class="demo-tag">DEMO DATA</span>
+        </header>
+        <section class="demo-stats" aria-label="Fictional sample health metrics">
+            <article class="demo-card"><div class="demo-label">Sample heart rate</div><div class="demo-value">72 <small>bpm</small></div></article>
+            <article class="demo-card"><div class="demo-label">Sample blood pressure</div><div class="demo-value">120/80 <small>mmHg</small></div></article>
+            <article class="demo-card"><div class="demo-label">Sample health risk estimate</div><div class="demo-value">18<small>%</small></div></article>
+            <article class="demo-card"><div class="demo-label">Sample assessment</div><div class="demo-value"><span class="demo-risk">Low risk</span></div></article>
+        </section>
+        <section class="demo-content">
+            <article class="demo-card">
+                <h2>Example trend (fictional)</h2>
+                <svg class="demo-chart" viewBox="0 0 600 180" role="img" aria-label="Fictional sample risk trend chart">
+                    <path d="M35 145H580M35 100H580M35 55H580" stroke="#e2e8f0" fill="none"/>
+                    <path d="M45 120 C130 115 155 90 230 100 S340 75 400 85 S500 60 570 70" stroke="#2563eb" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <circle cx="45" cy="120" r="5" fill="#2563eb"/><circle cx="230" cy="100" r="5" fill="#2563eb"/><circle cx="400" cy="85" r="5" fill="#2563eb"/><circle cx="570" cy="70" r="5" fill="#2563eb"/>
+                    <text x="40" y="170" fill="#64748b" font-size="12">Example 1</text><text x="205" y="170" fill="#64748b" font-size="12">Example 2</text><text x="375" y="170" fill="#64748b" font-size="12">Example 3</text><text x="525" y="170" fill="#64748b" font-size="12">Example 4</text>
+                </svg>
+            </article>
+            <article class="demo-card"><h2>Example wellness note</h2><p style="color:#475569;line-height:1.65">This sample card demonstrates how general wellness information may appear. It is not a medical assessment or a personal recommendation.</p><p style="color:#64748b;line-height:1.65">For personal health records and assessments, sign in with your patient account or create one.</p></article>
+        </section>
+        <nav class="demo-actions" aria-label="Account actions">
+            <a href="index.html"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Sign in</a>
+            <a class="secondary" href="signup.html"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create patient account</a>
+        </nav>
+    </main>
+</body>
+</html>

@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const profileModal = document.getElementById('profileModal');
     const topRightProfile = document.querySelector('.profile-avatar'); 
     const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const googleSyncBtn = document.querySelector('.btn-google-sync');
 
     // Desktop Photo Upload Logic
     const desktopPhotoUpload = document.getElementById('desktopPhotoUpload');
@@ -47,24 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    if (googleSyncBtn) {
-        googleSyncBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const currentName = localStorage.getItem('userName') || "User";
-            const currentEmail = localStorage.getItem('userEmail') || "synced.user@gmail.com";
-            const mockGoogleData = {
-                name: currentName + " (Google)",
-                email: currentEmail,
-                photoUrl: "https://i.pravatar.cc/150?img=47"
-            };
-            localStorage.setItem('userName', mockGoogleData.name);
-            localStorage.setItem('userPhoto', mockGoogleData.photoUrl);
-            updateUI(mockGoogleData.name, mockGoogleData.photoUrl, mockGoogleData.email);
-            googleSyncBtn.innerHTML = '<i class="fa-solid fa-check" style="color: green;"></i> Synced!';
-            setTimeout(() => { googleSyncBtn.innerHTML = '<i class="fa-brands fa-google"></i> Sync Gmail Photo'; }, 2000);
-        });
-    }
-
     // --- Helper Function: Calculate Age from ISO Date String (YYYY-MM-DD) ---
     function calculateAge(dobString) {
         if (!dobString) return null;
@@ -82,7 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateUI(name, photoUrl, email) {
         const savedName = name || localStorage.getItem('userName') || "Guest";
         const savedPhoto = photoUrl || localStorage.getItem('userPhoto') || "https://i.pravatar.cc/100?img=32";
-        const savedEmail = email || localStorage.getItem('userEmail') || "Not logged in";
+        const savedEmail = email || localStorage.getItem('userEmail') || "";
+        const savedSex = localStorage.getItem('userSex') || "Male";
+        const savedPhone = localStorage.getItem('userPhone') || "+91 98765 43210";
 
         // Retrieve stored DOB and compute age
         const savedDOB = localStorage.getItem('userDOB') || "1990-05-16";
@@ -97,6 +80,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const displayName = document.getElementById('displayName');
         if (displayName) displayName.innerText = savedName;
 
+        const displaySex = document.getElementById('displaySex');
+        if (displaySex) displaySex.innerText = savedSex;
+
+        const displayPhone = document.getElementById('displayPhone');
+        if (displayPhone) displayPhone.innerText = savedPhone;
+
         const allAvatars = document.querySelectorAll('.profile-avatar img, .large-avatar, #settingsAvatar, #topAvatar');
         allAvatars.forEach(img => img.src = savedPhoto);
         
@@ -105,6 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const emailInput = document.getElementById('profileEmail');
         if (emailInput) emailInput.value = savedEmail;
+
+        const sexInput = document.getElementById('profileSex');
+        if (sexInput) sexInput.value = savedSex;
+
+        const phoneInput = document.getElementById('profilePhone');
+        if (phoneInput) phoneInput.value = savedPhone;
 
         // Sync DOB & Age across Patient Profile (profile-settings.html)
         const displayDOB = document.getElementById('displayDOB');
@@ -131,19 +126,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateUI(null, null, null);
 
-    // Listen for DOB inputs on profile-settings.html to auto-update
+    // Preview age changes while editing; profile values are committed with Save Updates.
     const profileDOBInput = document.getElementById('profileDOB');
     if (profileDOBInput) {
         profileDOBInput.addEventListener('change', (e) => {
             const newDOB = e.target.value;
-            localStorage.setItem('userDOB', newDOB);
-            updateUI(null, null, null);
+            const displayDOB = document.getElementById('displayDOB');
+            const computedAge = calculateAge(newDOB);
+            if (displayDOB) {
+                displayDOB.innerText = `DOB: ${newDOB || '--'} (${computedAge !== null ? computedAge + 'y' : '--'})`;
+            }
         });
     }
 
     window.addEventListener('storage', (event) => {
-        if (event.key === 'userName' || event.key === 'userPhoto' || event.key === 'userEmail' || event.key === 'userDOB') {
+        if (event.key === 'userName' || event.key === 'userPhoto' || event.key === 'userEmail' || event.key === 'userDOB' || event.key === 'userSex' || event.key === 'userPhone' || event.key === 'healthPredictProfile') {
             updateUI(null, null, null);
+            if (event.key === 'healthPredictProfile' && profileForm) {
+                loadProfileFields();
+            }
         }
     });
 
@@ -324,114 +325,191 @@ document.addEventListener("DOMContentLoaded", () => {
         const heartRateEl = document.getElementById('dashHeartRate');
         const bpEl = document.getElementById('dashBloodPressure');
         const bloodSugarEl = document.getElementById('dashBloodSugar');
-        const spo2El = document.getElementById('dashSpo2');
         const assessmentPill = document.getElementById('dashAssessmentPill');
         const assessmentText = document.getElementById('dashAssessmentText');
-
-        // Fetch Stored Records & Update Vitals + Assessment Status
-        const history = JSON.parse(localStorage.getItem('healthHistory')) || [];
-        let latestRiskScore = 12;
-        let latestRecord = null;
-
-        // Helper: derive a realistic SpO2 reading from the risk score
-        // (SpO2 isn't collected on the prediction form, so we infer it:
-        // higher cardiovascular risk skews slightly lower oxygen saturation)
-        function deriveSpo2(score) {
-            const value = Math.round(99 - (score / 100) * 7);
-            return Math.max(92, Math.min(99, value));
-        }
-
-        if (history.length > 0) {
-            latestRecord = history[0];
-            latestRiskScore = parseFloat(latestRecord.score || latestRecord.riskScore) || 12;
-
-            // Populate Heart Rate + Blood Pressure from the saved assessment
-            if (latestRecord.vitals) {
-                if (heartRateEl && latestRecord.vitals.hr) {
-                    heartRateEl.innerHTML = `${latestRecord.vitals.hr} <span style="font-size: 1rem; color: #94a3b8;">bpm</span>`;
-                }
-                if (bpEl && latestRecord.vitals.bp) {
-                    // If stored as a single value (e.g. 120), format with default diastolic
-                    const bpVal = typeof latestRecord.vitals.bp === 'number'
-                        ? `${latestRecord.vitals.bp}/80`
-                        : latestRecord.vitals.bp;
-                    bpEl.innerHTML = `${bpVal} <span style="font-size: 1rem; color: #94a3b8;">mmHg</span>`;
-                }
-                if (bloodSugarEl && latestRecord.vitals.bs) {
-                    bloodSugarEl.innerHTML = `${latestRecord.vitals.bs} <span style="font-size: 1rem; color: #94a3b8;">mg/dL</span>`;
-                }
+        const historyEmptyState = document.getElementById('healthTrendEmpty');
+        let history = [];
+        try {
+            const storedHistory = JSON.parse(localStorage.getItem('healthHistory') || '[]');
+            if (!Array.isArray(storedHistory)) {
+                throw new TypeError('Saved health history must be an array.');
             }
-
-            // Populate SpO2 (derived from risk score, since it isn't collected on the form)
-            if (spo2El) {
-                spo2El.innerHTML = `${deriveSpo2(latestRiskScore)} <span style="font-size: 1rem; color: #94a3b8;">%</span>`;
-            }
-
-            // Populate Assessment status card
-            if (assessmentPill && assessmentText) {
-                const riskInfo = getRiskCategory(latestRiskScore);
-
-                assessmentPill.textContent = `${riskInfo.label.toUpperCase()} (${latestRiskScore}%)`;
-                assessmentPill.style.background = riskInfo.bgColor;
-                assessmentPill.style.color = riskInfo.textColor;
-
-                assessmentText.textContent = `Latest Assessment: ${latestRecord.statusText || riskInfo.label} — ${riskInfo.description} recorded on ${latestRecord.date}.`;
+            history = storedHistory.filter(record => record && record.isManual !== true && record.is_manual !== true);
+        } catch (error) {
+            console.error('Could not load dashboard assessment history:', error);
+            if (historyEmptyState) {
+                historyEmptyState.textContent = 'Your assessment history could not be loaded. Check browser storage and refresh the page.';
+                historyEmptyState.hidden = false;
             }
         }
 
-        // Initialize Telemetry Chart using real recorded history
-        const healthChartCanvas = document.getElementById('healthTrendChart');
-        if (healthChartCanvas && typeof Chart !== 'undefined') {
-            const ctx = healthChartCanvas.getContext('2d');
-
-            const chartRecords = [...history].reverse().slice(-5);
-            let labels = chartRecords.length > 0 ? chartRecords.map(r => r.date ? r.date.split(' ').slice(0, 2).join(' ') : 'Past') : ['00:00', '04:00', '08:00', '12:00', '16:00'];
-            let riskPoints = chartRecords.length > 0 ? chartRecords.map(r => r.score || 10) : [10, 12, 11, 14, 13];
-            let hrPoints = chartRecords.length > 0 ? chartRecords.map(r => (r.vitals && r.vitals.hr) || 72) : [65, 70, 72, 75, 80];
-            let bpPoints = chartRecords.length > 0 ? chartRecords.map(r => (r.vitals && r.vitals.bp) || 120) : [118, 120, 122, 121, 125];
-
-            if (history.length > 0) {
-                labels.push('Current');
-                riskPoints.push(latestRiskScore);
-                hrPoints.push((latestRecord.vitals && latestRecord.vitals.hr) || 72);
-                bpPoints.push((latestRecord.vitals && latestRecord.vitals.bp) || 120);
+        const latestRecord = history[0] || null;
+        const latestRiskScore = latestRecord ? Number(latestRecord.score ?? latestRecord.riskScore) : null;
+        const latestVitals = latestRecord && latestRecord.vitals ? latestRecord.vitals : {};
+        const setMetric = (element, value, unit = '') => {
+            if (!element) return;
+            element.replaceChildren();
+            if (value === null || value === undefined || value === '') {
+                element.textContent = 'Not available';
+                return;
             }
+            element.append(document.createTextNode(String(value)));
+            if (unit) {
+                const unitLabel = document.createElement('span');
+                unitLabel.style.cssText = 'font-size: 1rem; color: #647b91; font-weight: 500;';
+                unitLabel.textContent = unit;
+                element.appendChild(unitLabel);
+            }
+        };
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'AI Risk Profile (%)',
-                            data: riskPoints,
-                            borderColor: '#4F46E5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Heart Rate (BPM)',
-                            data: hrPoints,
-                            borderColor: '#ec4899',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Systolic BP (mmHg)',
-                            data: bpPoints,
-                            borderColor: '#3b82f6',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
+        setMetric(heartRateEl, latestVitals.hr, 'bpm');
+        setMetric(bpEl, latestVitals.bp, 'mmHg');
+
+        const fastingSugar = latestRecord?.fastingBloodSugar ?? latestVitals.fastingBloodSugar;
+        const legacySugar = latestVitals.bs;
+        if (fastingSugar !== undefined && fastingSugar !== null) {
+            setMetric(bloodSugarEl, Number(fastingSugar) === 1 ? 'Above 120 mg/dL' : 'Below 120 mg/dL');
+        } else if (legacySugar === 140 || legacySugar === '140') {
+            setMetric(bloodSugarEl, 'Above 120 mg/dL');
+        } else if (legacySugar === 95 || legacySugar === '95') {
+            setMetric(bloodSugarEl, 'Below 120 mg/dL');
         }
+
+        if (latestRecord && Number.isFinite(latestRiskScore) && assessmentPill && assessmentText) {
+            const riskInfo = getRiskCategory(latestRiskScore);
+            const displayedScore = Math.round(latestRiskScore);
+            assessmentPill.textContent = `${riskInfo.label.toUpperCase()} (${displayedScore}%)`;
+            assessmentPill.style.background = riskInfo.bgColor;
+            assessmentPill.style.color = riskInfo.textColor;
+            assessmentText.textContent = `Estimated health risk: ${riskInfo.label.toLowerCase()} (${displayedScore}%), recorded ${latestRecord.date || 'on an earlier date'}. Discuss this result with your healthcare professional; it is not a diagnosis.`;
+        }
+
+// Initialize Toggleable Telemetry Chart
+const healthChartCanvas = document.getElementById('healthTrendChart');
+if (healthChartCanvas && typeof Chart !== 'undefined') {
+    const ctx = healthChartCanvas.getContext('2d');
+    const chartRecords = history.slice(0, 5).reverse();
+    const labels = chartRecords.map(record => record.date || 'Assessment');
+    const riskPoints = chartRecords.map(record => {
+        const score = Number(record.score ?? record.riskScore);
+        return Number.isFinite(score) ? score : null;
+    });
+    const hrPoints = chartRecords.map(record => {
+        const value = Number(record.vitals?.hr);
+        return Number.isFinite(value) ? value : null;
+    });
+    const bpPoints = chartRecords.map(record => {
+        const value = Number(record.vitals?.bp);
+        return Number.isFinite(value) ? value : null;
+    });
+
+    if (chartRecords.length === 0) {
+        healthChartCanvas.hidden = true;
+        if (historyEmptyState) historyEmptyState.hidden = false;
+        document.querySelectorAll('.toggle-pill').forEach(button => { button.disabled = true; });
     }
+
+    // Dataset Configurations
+    const metricsConfig = {
+        risk: {
+            label: 'Health Risk Estimate (%)',
+            data: riskPoints,
+            color: '#0e7490',
+            bgColor: 'rgba(14, 116, 144, 0.12)',
+            min: 0,
+            max: 100,
+            unit: '%'
+        },
+        hr: {
+            label: 'Maximum Heart Rate (BPM)',
+            data: hrPoints,
+            color: '#0f172a',
+            bgColor: 'rgba(15, 23, 42, 0.1)',
+            min: 40,
+            max: 180,
+            unit: ' BPM'
+        },
+        bp: {
+            label: 'Resting Blood Pressure (mmHg)',
+            data: bpPoints,
+            color: '#22d3ee',
+            bgColor: 'rgba(34, 211, 238, 0.14)',
+            min: 80,
+            max: 200,
+            unit: ' mmHg'
+        }
+    };
+
+    let activeMetric = 'risk';
+
+    // Create Chart with initial Risk Profile dataset
+    const trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: metricsConfig[activeMetric].label,
+                data: metricsConfig[activeMetric].data,
+                borderColor: metricsConfig[activeMetric].color,
+                backgroundColor: metricsConfig[activeMetric].bgColor,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => ` ${context.dataset.label}: ${context.raw}${metricsConfig[activeMetric].unit}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: metricsConfig[activeMetric].min,
+                    max: metricsConfig[activeMetric].max,
+                    ticks: {
+                        callback: value => activeMetric === 'risk' ? `${value}%` : value
+                    },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { color: '#f1f5f9' }
+                }
+            }
+        }
+    });
+
+    // Handle Toggle Button Clicks
+    const togglePills = document.querySelectorAll('.toggle-pill');
+    togglePills.forEach(pill => {
+        pill.addEventListener('click', function() {
+            activeMetric = this.getAttribute('data-metric');
+            const targetConfig = metricsConfig[activeMetric];
+
+            togglePills.forEach(p => {
+                p.classList.toggle('active', p === this);
+            });
+
+            // Update Chart Dataset & Axis Bounds Smoothly
+            trendChart.data.datasets[0].label = targetConfig.label;
+            trendChart.data.datasets[0].data = targetConfig.data;
+            trendChart.data.datasets[0].borderColor = targetConfig.color;
+            trendChart.data.datasets[0].backgroundColor = targetConfig.bgColor;
+            trendChart.options.scales.y.min = targetConfig.min;
+            trendChart.options.scales.y.max = targetConfig.max;
+
+            trendChart.update();
+        });
+    });
+}
+}
 
     /* ==========================================================================
        4. HEALTH RECORDS LOGIC (Dynamic Sync & Live Search)
@@ -443,14 +521,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recordsPage || recordsGrid) {
         
         const renderHealthRecords = (filterQuery = '') => {
-            const history = JSON.parse(localStorage.getItem('healthHistory')) || [];
+            const storedHistory = JSON.parse(localStorage.getItem('healthHistory') || '[]');
+            const history = Array.isArray(storedHistory)
+                ? storedHistory.filter(record => record && record.isManual !== true && record.is_manual !== true)
+                : [];
             const query = filterQuery.toLowerCase().trim();
 
             const filteredHistory = history.filter(rec => {
                 const title = (rec.statusText || 'AI Prediction').toLowerCase();
                 const date = (rec.date || '').toLowerCase();
-                const score = (rec.score + '%').toLowerCase();
-                const riskLabel = getRiskCategory(rec.score || 10).label.toLowerCase();
+                const rawScore = Number(rec.score ?? rec.riskScore);
+                const score = Number.isFinite(rawScore) ? `${Math.round(rawScore)}%` : '';
+                const riskLabel = getRiskCategory(rawScore).label.toLowerCase();
 
                 return title.includes(query) || date.includes(query) || score.includes(query) || riskLabel.includes(query);
             });
@@ -462,46 +544,58 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="empty-state">
                         <i class="fa-solid fa-folder-open"></i>
                         <h3>No health records found</h3>
-                        <p style="color: var(--text-muted); margin-top: 0.5rem;">Try running a health prediction or modifying your search filter.</p>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">Complete a health assessment to add a record, or try changing your search.</p>
                     </div>
                 `;
                 return;
             }
 
             recordsGrid.innerHTML = filteredHistory.map(rec => {
-                const score = rec.score || rec.riskScore || 10;
+                const rawScore = Number(rec.score ?? rec.riskScore);
+                const hasScore = Number.isFinite(rawScore);
+                const score = hasScore ? rawScore : null;
                 const risk = getRiskCategory(score);
-                const hr = rec.vitals && rec.vitals.hr ? rec.vitals.hr : '72 bpm';
-                const bp = rec.vitals && rec.vitals.bp ? rec.vitals.bp : '120/80';
-                const bs = rec.vitals && rec.vitals.bs ? rec.vitals.bs : '95 mg/dL';
+                const vitals = rec.vitals || {};
+                const hr = vitals.hr ? `${vitals.hr} bpm` : 'Not available';
+                const bp = vitals.bp ? `${vitals.bp} mmHg` : 'Not available';
+                const cholesterol = vitals.cholesterol || rec.cholesterol;
+                const fastingSugar = rec.fastingBloodSugar ?? vitals.fastingBloodSugar;
+                const legacySugar = vitals.bs;
+                const bloodSugarStatus = fastingSugar !== undefined && fastingSugar !== null
+                    ? Number(fastingSugar) === 1 ? 'Above 120 mg/dL' : 'Below 120 mg/dL'
+                    : legacySugar === 140 || legacySugar === '140'
+                        ? 'Above 120 mg/dL'
+                        : legacySugar === 95 || legacySugar === '95'
+                            ? 'Below 120 mg/dL'
+                            : 'Not available';
 
                 return `
                     <div class="record-card">
                         <div class="record-header">
                             <span class="record-date"><i class="fa-regular fa-calendar"></i> ${rec.date || 'Recent'}</span>
                             <span style="font-size: 0.8rem; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 700; background: ${risk.bgColor}; color: ${risk.textColor};">
-                                ${risk.label.toUpperCase()} (${score}%)
+                                ${hasScore ? `${risk.label.toUpperCase()} (${Math.round(score)}%)` : 'ASSESSMENT'}
                             </span>
                         </div>
                         <div class="record-body">
-                            <div class="record-type" style="color: var(--primary); font-size: 0.8rem; font-weight: 600;"><i class="fa-solid fa-robot"></i> AI Health Assessment</div>
-                            <div class="record-title" style="font-size: 1.1rem; font-weight: 700; margin: 0.4rem 0 1rem 0;">${rec.statusText || 'Cardiovascular Profile Evaluation'}</div>
+                            <div class="record-type" style="color: var(--primary); font-size: 0.8rem; font-weight: 600;"><i class="fa-solid fa-heart-pulse"></i> Health Risk Estimate</div>
+                            <div class="record-title" style="font-size: 1.1rem; font-weight: 700; margin: 0.4rem 0 1rem 0;">${rec.statusText || 'Heart health assessment'}</div>
                             <div class="vitals-mini-grid">
                                 <div class="vital-item">
-                                    <span class="vital-lbl">Heart Rate</span>
+                                    <span class="vital-lbl">Maximum Heart Rate</span>
                                     <span class="vital-val">${hr}</span>
                                 </div>
                                 <div class="vital-item">
-                                    <span class="vital-lbl">Blood Pressure</span>
+                                    <span class="vital-lbl">Resting Blood Pressure</span>
                                     <span class="vital-val">${bp}</span>
                                 </div>
                                 <div class="vital-item">
-                                    <span class="vital-lbl">Blood Sugar</span>
-                                    <span class="vital-val">${bs}</span>
+                                    <span class="vital-lbl">Fasting Blood Sugar</span>
+                                    <span class="vital-val">${bloodSugarStatus}</span>
                                 </div>
                                 <div class="vital-item">
-                                    <span class="vital-lbl">SpO2</span>
-                                    <span class="vital-val">98%</span>
+                                    <span class="vital-lbl">Cholesterol</span>
+                                    <span class="vital-val">${cholesterol ? `${cholesterol} mg/dL` : 'Not available'}</span>
                                 </div>
                             </div>
                         </div>
@@ -539,12 +633,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getRiskCategory(score) {
         const numScore = parseFloat(score);
-        if (numScore >= 50) {
-            return { label: 'High Risk', bgColor: '#fee2e2', textColor: '#b91c1c', description: 'Priority clinical attention recommended' };
-        } else if (numScore >= 25) {
-            return { label: 'Moderate Risk', bgColor: '#fef3c7', textColor: '#d97706', description: 'Moderate risk indicators observed' };
+        if (numScore >= 60) {
+            return { label: 'High Risk Estimate', bgColor: '#fee2e2', textColor: '#b91c1c', description: 'Consider discussing this result with your healthcare professional.' };
+        } else if (numScore >= 30) {
+            return { label: 'Moderate Risk Estimate', bgColor: '#fef3c7', textColor: '#92400e', description: 'Some factors may be worth discussing with your healthcare professional.' };
         } else {
-            return { label: 'Low Risk', bgColor: '#dcfce7', textColor: '#15803d', description: 'Vitals within normal health baseline' };
+            return { label: 'Low Risk Estimate', bgColor: '#dcfce7', textColor: '#15803d', description: 'Continue routine checkups and healthy habits.' };
         }
     }    
 
@@ -613,14 +707,14 @@ document.addEventListener("DOMContentLoaded", () => {
             let statusText = "", statusColor = "", statusIcon = "", recommendation = "", colorClass = "", badgeClass = "", badgeText = "";
 
             if (riskScore < 30) {
-                statusText = "Low Risk"; statusColor = "#10b981"; statusIcon = "fa-shield-heart"; colorClass = "text-green"; badgeClass = "light-green"; badgeText = "Good";
-                recommendation = "Great job! Your cardiovascular profile looks healthy. Maintain your current diet and exercise routine.";
+                statusText = "Lower Risk Estimate"; statusColor = "#10b981"; statusIcon = "fa-shield-heart"; colorClass = "text-green"; badgeClass = "light-green"; badgeText = "Lower";
+                recommendation = "This estimate is in the lower range. Keep up healthy habits and continue routine checkups with your healthcare professional.";
             } else if (riskScore < 60) {
-                statusText = "Moderate Risk"; statusColor = "#f59e0b"; statusIcon = "fa-triangle-exclamation"; colorClass = "text-orange"; badgeClass = "light-orange"; badgeText = "Moderate";
-                recommendation = "You have some risk factors. Consider speaking with a doctor about managing your blood pressure or cholesterol levels.";
+                statusText = "Moderate Risk Estimate"; statusColor = "#f59e0b"; statusIcon = "fa-triangle-exclamation"; colorClass = "text-orange"; badgeClass = "light-orange"; badgeText = "Moderate";
+                recommendation = "This estimate is in the moderate range. Consider discussing the result and your blood pressure or cholesterol with your healthcare professional.";
             } else {
-                statusText = "High Risk"; statusColor = "#ef4444"; statusIcon = "fa-truck-medical"; colorClass = "text-red"; badgeClass = "light-red"; badgeText = "At Risk";
-                recommendation = "Your profile indicates a high probability of cardiovascular issues. Please schedule a consultation with a cardiologist soon.";
+                statusText = "Higher Risk Estimate"; statusColor = "#ef4444"; statusIcon = "fa-truck-medical"; colorClass = "text-red"; badgeClass = "light-red"; badgeText = "Higher";
+                recommendation = "This estimate is in the higher range. Please discuss the result with a healthcare professional, who can interpret it alongside your medical history.";
             }
 
             const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -633,7 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 statusColorClass: colorClass, 
                 badgeClass: badgeClass, 
                 badgeText: badgeText,
-                vitals: { hr: thalach, bp: bp, bs: fbs === 1 ? 140 : 95 },
+                vitals: { hr: thalach, bp: bp, cholesterol: chol, fastingBloodSugar: fbs },
                 isManual: false 
             };
             
@@ -685,16 +779,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 formCard.innerHTML = `
                     <div style="text-align: center; padding: 2rem 1rem; animation: fadeIn 0.5s ease;">
                         <div style="width: 80px; height: 80px; background: ${statusColor}20; color: ${statusColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 1.5rem auto;"><i class="fa-solid ${statusIcon}"></i></div>
-                        <h2 style="font-size: 1.5rem; color: var(--text-dark); margin-bottom: 0.5rem;">Prediction Complete</h2>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Analysis successfully processed and saved to your profile.</p>
+                        <h2 style="font-size: 1.5rem; color: var(--text-dark); margin-bottom: 0.5rem;">Assessment Complete</h2>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Your assessment is complete. This result is saved in this browser.</p>
                         <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
-                            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Estimated Risk Probability</span>
-                            <div style="font-size: 4rem; font-weight: 800; color: ${statusColor}; line-height: 1;">${riskScore}%</div>
+                            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Health Risk Estimate</span>
+                            <div style="font-size: 4rem; font-weight: 800; color: ${statusColor}; line-height: 1;">${Math.round(riskScore)}%</div>
                             <div style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: ${statusColor}15; color: ${statusColor}; font-weight: 600; border-radius: 20px; font-size: 0.9rem;">${statusText}</div>
                         </div>
                         <div style="text-align: left; background: #eff6ff; color: #1e293b; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary); font-size: 0.9rem; line-height: 1.5;">
                             <strong><i class="fa-solid fa-user-doctor"></i> Recommendation:</strong><br>${recommendation}
                         </div>
+                        <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">This estimate is provided for informational purposes and is not a diagnosis. Please discuss health concerns and next steps with your healthcare professional.</p>
                         <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
                             <button onclick="window.location.reload()" style="background: white; border: 1px solid var(--border-color); color: var(--text-dark); padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
                                 <i class="fa-solid fa-rotate-left"></i> Run Again
@@ -710,102 +805,81 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* ==========================================================================
-       6. MY HISTORY PAGE LOGIC
-       ========================================================================== */
-    const historyPage = document.querySelector('.history-table');
-    if (historyPage) {
-        const historyBody = document.getElementById('historyBody');
-        const history = JSON.parse(localStorage.getItem('healthHistory')) || [];
-
-        if (historyBody) {
-            const aiOnlyHistory = history.filter(record => record.isManual !== true);
-
-            if (aiOnlyHistory.length === 0) {
-                historyBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem;">No history found.</td></tr>`;
-            } else {
-                historyBody.innerHTML = '';
-                aiOnlyHistory.forEach(record => {
-                    historyBody.innerHTML += `
-                        <tr>
-                            <td><strong>${record.date}</strong></td>
-                            <td><span class="status-pill ${record.badgeClass || 'light-green'}">${record.statusText}</span></td>
-                            <td>${record.score}%</td>
-                            <td><button onclick="window.location.href='health-records.html'" class="btn-outline">Details</button></td>
-                        </tr>
-                    `;
-                });
-            }
-        }
-    }
-    
-    /* ==========================================================================
        7. PROFILE SETTINGS LOGIC
        ========================================================================== */
     const profilePage = document.querySelector('.profile-page');
-    if (profilePage && saveProfileBtn) {
-        saveProfileBtn.addEventListener("click", async (e) => {
-            e.preventDefault(); 
-            const nameInput = document.getElementById("profileName");
-            if(nameInput) {
-                localStorage.setItem('userName', nameInput.value);
-                updateUI(nameInput.value, null, null);
-            }
-            const originalText = saveProfileBtn.innerHTML;
-            saveProfileBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-            setTimeout(() => {
-                saveProfileBtn.innerHTML = '<i class="fa-solid fa-check"></i> Profile Updated!';
-                saveProfileBtn.style.backgroundColor = '#16a34a'; 
-                saveProfileBtn.style.color = 'white';
-                saveProfileBtn.style.borderColor = '#16a34a';
-                setTimeout(() => {
-                    saveProfileBtn.innerHTML = originalText;
-                    saveProfileBtn.style.backgroundColor = ''; 
-                    saveProfileBtn.style.color = '';
-                    saveProfileBtn.style.borderColor = '';
-                }, 2000);
-            }, 1000); 
-        });
+    const profileForm = document.getElementById('clinicalProfileForm');
+    const profileSaveStatus = document.getElementById('profileSaveStatus');
+    const profileStorageKey = 'healthPredictProfile';
+
+    function setProfileStatus(message, isError = false) {
+        if (!profileSaveStatus) return;
+        profileSaveStatus.textContent = message;
+        profileSaveStatus.classList.toggle('is-error', isError);
     }
 
-    /* ==========================================================================
-       8. RECOMMENDATIONS PAGE LOGIC
-       ========================================================================== */
-    const recPage = document.querySelector('.recommendations-page');
-    if (recPage) {
-        const history = JSON.parse(localStorage.getItem('healthHistory')) || [];
-        const recGrid = document.getElementById('recGrid');
-        const alertContainer = document.getElementById('riskAlertContainer');
-
-        if (history.length === 0) {
-            if (recGrid) recGrid.innerHTML = `<p>No data found. Please complete an assessment first.</p>`;
-        } else {
-            const latest = history[0];
-            if (latest.score > 60 && alertContainer) {
-                alertContainer.innerHTML = `
-                    <div class="risk-alert">
-                        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Medical Priority:</strong> 
-                        Based on your latest high-risk assessment, we strongly recommend scheduling a consultation with your cardiologist.
-                    </div>
-                `;
-            }
-            const advice = [
-                { title: "Dietary Adjustments", icon: "fa-apple-whole", desc: "Focus on low-sodium foods, leafy greens, and whole grains to support heart health." },
-                { title: "Physical Activity", icon: "fa-person-walking", desc: "Aim for 30 minutes of moderate aerobic activity (brisk walking) at least 5 days a week." },
-                { title: "Stress Management", icon: "fa-spa", desc: "Incorporate mindfulness meditation or deep breathing exercises to lower cortisol levels." },
-                { title: "Routine Monitoring", icon: "fa-notes-medical", desc: "Track your blood pressure and sugar levels at the same time every day." }
-            ];
-            if (recGrid) {
-                advice.forEach(item => {
-                    recGrid.innerHTML += `
-                        <div class="rec-card">
-                            <i class="fa-solid ${item.icon}"></i>
-                            <h3>${item.title}</h3>
-                            <p style="color: var(--text-muted);">${item.desc}</p>
-                        </div>
-                    `;
-                });
-            }
+    function loadProfileFields() {
+        if (!profileForm) return;
+        try {
+            const savedProfile = JSON.parse(localStorage.getItem(profileStorageKey) || '{}');
+            profileForm.querySelectorAll('[data-profile-field]').forEach((field) => {
+                const value = savedProfile[field.dataset.profileField];
+                if (value !== undefined && value !== null) {
+                    field.value = value;
+                }
+            });
+        } catch (error) {
+            console.error('Could not load saved profile details:', error);
+            setProfileStatus('Saved profile details could not be loaded. Check browser storage and reload.', true);
         }
+    }
+
+    if (profilePage && profileForm && saveProfileBtn) {
+        loadProfileFields();
+        if (profileDOBInput) {
+            const today = new Date();
+            const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 10);
+            profileDOBInput.max = localToday;
+        }
+
+        profileForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!profileForm.reportValidity()) return;
+
+            const profileData = {};
+            profileForm.querySelectorAll('[data-profile-field]').forEach((field) => {
+                profileData[field.dataset.profileField] = field.value.trim();
+            });
+            profileData.savedAt = new Date().toISOString();
+
+            const originalText = saveProfileBtn.innerHTML;
+            saveProfileBtn.disabled = true;
+            saveProfileBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving...';
+            setProfileStatus('');
+
+            try {
+                localStorage.setItem(profileStorageKey, JSON.stringify(profileData));
+                localStorage.setItem('userName', profileData.name);
+                localStorage.setItem('userEmail', profileData.email);
+                localStorage.setItem('userDOB', profileData.dob);
+                localStorage.setItem('userSex', profileData.sex);
+                localStorage.setItem('userPhone', profileData.phone);
+                updateUI(profileData.name, null, profileData.email);
+                setProfileStatus('Your profile was saved successfully.');
+                saveProfileBtn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Profile Saved';
+            } catch (error) {
+                console.error('Could not save profile details:', error);
+                setProfileStatus('Your profile could not be saved. Check browser storage and try again.', true);
+                saveProfileBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Save Failed';
+            } finally {
+                saveProfileBtn.disabled = false;
+                window.setTimeout(() => {
+                    saveProfileBtn.innerHTML = originalText;
+                }, 2200);
+            }
+        });
     }
 
     /* ==========================================================================
@@ -813,28 +887,61 @@ document.addEventListener("DOMContentLoaded", () => {
        ========================================================================== */
     const chartsPage = document.querySelector('.charts-page');
     if (chartsPage) {
-        const history = JSON.parse(localStorage.getItem('healthHistory')) || [];
+        let history = [];
+        try {
+            const storedHistory = JSON.parse(localStorage.getItem('healthHistory') || '[]');
+            if (!Array.isArray(storedHistory)) {
+                throw new TypeError('Saved health history must be an array.');
+            }
+            history = storedHistory.filter(record => {
+                if (!record || record.isManual === true || record.is_manual === true) return false;
+                return Number.isFinite(Number(record.score ?? record.riskScore));
+            });
+        } catch (error) {
+            console.error('Could not load assessment history for the trends chart:', error);
+            const historyContainer = document.querySelector('.history-container');
+            if (historyContainer) {
+                historyContainer.innerHTML = '<p class="chart-empty-state" role="status">Your assessment history could not be loaded. Check browser storage and refresh the page.</p>';
+            }
+        }
         const canvasObj = document.getElementById('healthChart');
         
         if (canvasObj && typeof Chart !== 'undefined') {
             const ctx = canvasObj.getContext('2d');
             if (history.length === 0) {
                 const historyContainer = document.querySelector('.history-container');
-                if (historyContainer) historyContainer.innerHTML = `<p style="text-align:center;">No data available. Please complete an assessment.</p>`;
+                if (historyContainer) historyContainer.innerHTML = '<p class="chart-empty-state">Complete a health assessment to start seeing your trends here.</p>';
             } else {
-                const sortedHistory = [...history].reverse(); 
-                const labels = sortedHistory.map(record => record.date);
-                const dataPoints = sortedHistory.map(record => record.score);
+                const sortedHistory = [...history].reverse();
+                const labels = sortedHistory.map(record => record.date || 'Assessment');
+                const dataPoints = sortedHistory.map(record => Number(record.score ?? record.riskScore));
 
                 new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [{ label: 'Health Risk Score', data: dataPoints, borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.1)', tension: 0.4, fill: true, pointBackgroundColor: '#2563eb' }]
+                        datasets: [{ label: 'Health Risk Estimate (%)', data: dataPoints, borderColor: '#0e7490', backgroundColor: 'rgba(14, 116, 144, 0.12)', tension: 0.4, fill: true, pointBackgroundColor: '#0e7490' }]
                     },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: context => ` Health risk estimate: ${Math.round(context.raw)}%` } }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: { display: true, text: 'Health risk estimate (%)' },
+                                ticks: { callback: value => `${value}%` }
+                            }
+                        }
+                    }
                 });
             }
+        } else if (canvasObj) {
+            const historyContainer = document.querySelector('.history-container');
+            if (historyContainer) historyContainer.innerHTML = '<p class="chart-empty-state">The trends chart is unavailable right now. Please refresh the page and try again.</p>';
         }
     }
 

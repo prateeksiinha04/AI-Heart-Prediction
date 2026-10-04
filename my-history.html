@@ -58,6 +58,86 @@
         /* Badge Colors */
         .bg-safe { background: #dcfce7; color: #15803d; }
         .bg-danger { background: #fee2e2; color: #b91c1c; }
+        .bg-warning { background: #fef3c7; color: #92400e; }
+
+        .history-status {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .history-status:empty {
+            display: none;
+        }
+
+        .history-status.is-error {
+            color: #b91c1c;
+        }
+
+        .history-empty {
+            padding: 2rem !important;
+            color: var(--text-muted) !important;
+            text-align: center;
+        }
+
+        .history-action-cell {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .history-action-group {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .history-recommendations-cell {
+            padding: 1rem !important;
+            background: #f8fbfd;
+        }
+
+        .history-recommendations-cell[hidden] {
+            display: none;
+        }
+
+        .history-recommendations-cell h3 {
+            margin-bottom: 0.75rem;
+            color: var(--text-dark);
+            font-size: 1rem;
+        }
+
+        .history-recommendation-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+            gap: 0.75rem;
+        }
+
+        .history-recommendation-card {
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .history-recommendation-card h4 {
+            margin-bottom: 0.35rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .history-recommendation-card p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .history-recommendation-message {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
 
         /* Fixed: Button alignment & interaction state */
         .btn-details {
@@ -82,6 +162,8 @@
             color: var(--primary);
         }
     </style>
+    <link rel="stylesheet" href="sidebar.css">
+    <link rel="stylesheet" href="professional.css">
 </head>
 <body class="dashboard-page">
 
@@ -99,33 +181,34 @@
             </a>
 
             <!-- Navigation Menu -->
-            <nav class="sidebar-menu">
-                <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-grid-2"></i> <span class="nav-text">Dashboard</span></a>
-                <a href="heart-prediction.html" class="menu-item"><i class="fa-solid fa-user-doctor"></i> <span class="nav-text">Health Prediction</span></a>
-                <a href="my-history.html" class="menu-item active"><i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">My History</span></a>
-                <a href="health-records.html" class="menu-item"><i class="fa-solid fa-folder-medical"></i> <span class="nav-text">Health Records</span></a>
-                <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line"></i> <span class="nav-text">Charts & Trends</span></a>
-                <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart-circle-check"></i> <span class="nav-text">Recommendations</span></a>
-                <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear"></i> <span class="nav-text">Patient Profile</span></a>
+            <nav class="sidebar-menu" aria-label="Main navigation">
+                <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-house" aria-hidden="true"></i> <span class="nav-text">Dashboard</span></a>
+                <a href="heart-prediction.html" class="menu-item"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> <span class="nav-text">Health Prediction</span></a>
+                <a href="my-history.html" class="menu-item active" aria-current="page"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span class="nav-text">My History</span></a>
+                <a href="health-records.html" class="menu-item"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> <span class="nav-text">Health Records</span></a>
+                <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span class="nav-text">Charts & Trends</span></a>
+                <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart" aria-hidden="true"></i> <span class="nav-text">Recommendations</span></a>
+                <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span class="nav-text">Patient Profile</span></a>
                 
-                <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="nav-text">Logout</span></a>
+                <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> <span class="nav-text">Logout</span></a>
             </nav>
         </aside>
 
         <main class="main-content">
             <header class="content-header">
                 <div class="user-greeting">
-                    <h1>Prediction History</h1>
-                    <p>Review all your previous health analysis sessions.</p>
+                    <h1>Your Assessment History</h1>
+                    <p>Review past health risk estimates, assessment details, and recommendations. Discuss results with your healthcare professional.</p>
                 </div>
             </header>
 
             <div class="history-container">
+                <p id="historyStatus" class="history-status" role="status" aria-live="polite"></p>
                 <table class="history-table">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Risk Status</th>
+                            <th>Health Risk Estimate</th>
                             <th>Assessment Type</th>
                             <th style="text-align: right;">Actions</th>
                         </tr>
@@ -139,41 +222,205 @@
 
     <!-- PIPELINE HISTORY RENDER PLATFORM -->
     <script>
-        async function loadHistory() {
-            try {
-                const userId = localStorage.getItem('userId') || "65c1a8e9f1d2c3456789abcd";
-                
-                const response = await fetch(`http://localhost:5001/api/history/${userId}`);
-                const data = await response.json();
-                
-                const historyBody = document.getElementById('historyBody');
-                if (!historyBody) return;
-                
-                historyBody.innerHTML = '';
+        const historyBody = document.getElementById('historyBody');
+        const historyStatus = document.getElementById('historyStatus');
 
-                const aiAssessments = data.filter(item => item.is_manual !== true);
+        function showHistoryMessage(message, isError = false) {
+            if (!historyStatus) return;
+            historyStatus.textContent = message;
+            historyStatus.classList.toggle('is-error', isError);
+        }
 
-                if (aiAssessments.length === 0) {
-                    historyBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No system diagnostic assessments available. Please run an AI evaluation loop.</td></tr>`;
-                    return;
+        function renderHistory(records) {
+            if (!historyBody) return;
+            historyBody.replaceChildren();
+
+            const assessments = records.filter(item => item && item.is_manual !== true && item.isManual !== true);
+            if (assessments.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                cell.className = 'history-empty';
+                cell.textContent = 'No saved assessments yet. Complete a health prediction to see it here.';
+                row.appendChild(cell);
+                historyBody.appendChild(row);
+                return;
+            }
+
+            assessments.forEach((item, index) => {
+                const riskLabel = String(item.risk || item.statusText || '').toLowerCase();
+                const rawScore = Number(item.score ?? item.riskScore);
+                const score = Number.isFinite(rawScore)
+                    ? rawScore
+                    : riskLabel.includes('high')
+                        ? 61
+                        : riskLabel.includes('moderate') || riskLabel.includes('medium')
+                            ? 30
+                            : riskLabel.includes('low')
+                                ? 0
+                                : Number.NaN;
+                const risk = item.risk || item.statusText || (
+                    Number.isFinite(score)
+                        ? score >= 60 ? 'HIGH RISK ESTIMATE' : score >= 30 ? 'MODERATE RISK ESTIMATE' : 'LOWER RISK ESTIMATE'
+                        : 'ASSESSMENT'
+                );
+                const normalizedRisk = String(risk).toLowerCase();
+                const badgeClass = normalizedRisk.includes('high')
+                    ? 'bg-danger'
+                    : normalizedRisk.includes('moderate') || normalizedRisk.includes('medium')
+                        ? 'bg-warning'
+                        : 'bg-safe';
+                const rawDate = item.date;
+                const parsedDate = rawDate ? new Date(rawDate) : null;
+                const dateText = parsedDate && !Number.isNaN(parsedDate.getTime())
+                    ? parsedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : String(rawDate || 'Date unavailable');
+
+                const row = document.createElement('tr');
+                row.className = 'history-assessment-row';
+                const dateCell = document.createElement('td');
+                dateCell.dataset.label = 'Date';
+                const dateLabel = document.createElement('strong');
+                dateLabel.textContent = dateText;
+                dateCell.appendChild(dateLabel);
+
+                const riskCell = document.createElement('td');
+                riskCell.dataset.label = 'Health Risk Estimate';
+                const riskBadge = document.createElement('span');
+                riskBadge.className = `status-pill ${badgeClass}`;
+                riskBadge.textContent = Number.isFinite(rawScore)
+                    ? `${risk} · ${Math.round(rawScore)}%`
+                    : risk;
+                riskCell.appendChild(riskBadge);
+
+                const typeCell = document.createElement('td');
+                typeCell.dataset.label = 'Assessment Type';
+                typeCell.textContent = Number.isFinite(rawScore)
+                    ? `Automated Assessment · Health risk ${Math.round(rawScore)}%`
+                    : 'Automated Assessment';
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'history-action-cell';
+                actionCell.dataset.label = 'Actions';
+                const actionGroup = document.createElement('div');
+                actionGroup.className = 'history-action-group';
+                const recommendationButton = document.createElement('button');
+                recommendationButton.type = 'button';
+                recommendationButton.className = 'btn-details';
+                recommendationButton.setAttribute('aria-expanded', 'false');
+                recommendationButton.innerHTML = '<i class="fa-solid fa-heart" aria-hidden="true"></i> View Recommendations';
+                const recommendationRowId = `history-recommendations-${index}`;
+                recommendationButton.setAttribute('aria-controls', recommendationRowId);
+                const detailsLink = document.createElement('a');
+                detailsLink.className = 'btn-details';
+                detailsLink.href = 'health-records.html';
+                detailsLink.innerHTML = '<i class="fa-regular fa-file-lines" aria-hidden="true"></i> Details';
+                actionGroup.append(recommendationButton, detailsLink);
+                actionCell.appendChild(actionGroup);
+
+                row.append(dateCell, riskCell, typeCell, actionCell);
+                historyBody.appendChild(row);
+
+                const recommendationRow = document.createElement('tr');
+                recommendationRow.className = 'history-recommendations-row';
+                const recommendationCell = document.createElement('td');
+                recommendationCell.colSpan = 4;
+                recommendationCell.className = 'history-recommendations-cell';
+                recommendationCell.id = recommendationRowId;
+                recommendationCell.hidden = true;
+
+                if (Number.isFinite(score)) {
+                    const heading = document.createElement('h3');
+                    heading.textContent = `Recommendations for ${dateText}${Number.isFinite(rawScore) ? ` · Health risk ${Math.round(rawScore)}%` : ''}`;
+                    const recommendationList = document.createElement('div');
+                    recommendationList.className = 'history-recommendation-list';
+                    const recommendations = score >= 60
+                        ? [
+                            ['Discuss Your Results', 'Arrange a timely review with your healthcare professional to discuss this assessment.'],
+                            ['Track Your Vitals', 'Keep a record of blood pressure and heart rate readings to share with your care team.'],
+                            ['Choose Gentle Activity', 'Discuss a safe activity plan with your clinician before changing your exercise routine.']
+                        ]
+                        : score >= 30
+                            ? [
+                                ['Stay Active', 'Aim for regular activity that is appropriate for your abilities and health.'],
+                                ['Choose Balanced Meals', 'Include vegetables, whole grains, and lean proteins in your meals.'],
+                                ['Plan a Follow-up', 'Repeat an assessment or checkup as recommended by your healthcare professional.']
+                            ]
+                            : [
+                                ['Maintain Healthy Habits', 'Continue regular activity and nutritious meals that work for you.'],
+                                ['Keep Routine Checkups', 'Continue regular checkups with your healthcare professional.'],
+                                ['Review Changes', 'Repeat an assessment periodically or after significant lifestyle changes.']
+                            ];
+
+                    recommendations.forEach(([titleText, descriptionText]) => {
+                        const card = document.createElement('article');
+                        card.className = 'history-recommendation-card';
+                        const title = document.createElement('h4');
+                        title.textContent = titleText;
+                        const description = document.createElement('p');
+                        description.textContent = descriptionText;
+                        card.append(title, description);
+                        recommendationList.appendChild(card);
+                    });
+
+                    recommendationCell.append(heading, recommendationList);
+                } else {
+                    const message = document.createElement('p');
+                    message.className = 'history-recommendation-message';
+                    message.textContent = 'Recommendations are unavailable for this assessment because no health risk estimate was saved.';
+                    recommendationCell.appendChild(message);
+                    recommendationButton.disabled = true;
+                    recommendationButton.title = 'No health risk estimate is available for this assessment';
                 }
 
-                aiAssessments.forEach(item => {
-                    const row = document.createElement('tr');
-                    
-                    const isHighRisk = item.risk === 'HIGH RISK';
-                    const badgeClass = isHighRisk ? 'bg-danger' : 'bg-safe';
-                    
-                    row.innerHTML = `
-                        <td><strong>${new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></td>
-                        <td><span class="status-pill ${badgeClass}">${item.risk}</span></td>
-                        <td><span style="color: var(--text-muted); font-weight: 500;"><i class="fa-solid fa-robot" style="color: var(--primary); margin-right: 6px;"></i> Automated Assessment</span></td>
-                        <td style="text-align: right;"><button class="btn-details"><i class="fa-regular fa-file-lines"></i> Details</button></td>
-                    `;
-                    historyBody.appendChild(row);
+                recommendationRow.appendChild(recommendationCell);
+                historyBody.appendChild(recommendationRow);
+
+                recommendationButton.addEventListener('click', () => {
+                    const expanded = recommendationButton.getAttribute('aria-expanded') === 'true';
+                    recommendationCell.hidden = expanded;
+                    recommendationButton.setAttribute('aria-expanded', String(!expanded));
+                    recommendationButton.innerHTML = expanded
+                        ? '<i class="fa-solid fa-heart" aria-hidden="true"></i> View Recommendations'
+                        : '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i> Hide Recommendations';
                 });
+            });
+        }
+
+        async function loadHistory() {
+            if (!historyBody) return;
+            const userId = localStorage.getItem('userId');
+
+            if (userId) {
+                try {
+                    const response = await fetch(`http://localhost:5001/api/history/${encodeURIComponent(userId)}`);
+                    if (!response.ok) {
+                        throw new Error(`History service returned ${response.status}.`);
+                    }
+
+                    const records = await response.json();
+                    if (!Array.isArray(records)) {
+                        throw new TypeError('History service response must be an array.');
+                    }
+
+                    renderHistory(records);
+                    showHistoryMessage('');
+                    return;
+                } catch (error) {
+                    console.warn('Could not load history from the service; using locally saved assessments.', error);
+                }
+            }
+
+            try {
+                const localRecords = JSON.parse(localStorage.getItem('healthHistory') || '[]');
+                if (!Array.isArray(localRecords)) {
+                    throw new TypeError('Locally saved history must be an array.');
+                }
+                renderHistory(localRecords);
+                showHistoryMessage(userId ? 'History service is unavailable; showing assessments saved in this browser.' : '');
             } catch (error) {
-                console.error("Error loading clinical assessment history:", error);
+                console.error('Could not load locally saved assessments:', error);
+                showHistoryMessage('Saved assessment history could not be loaded. Check browser storage and try again.', true);
             }
         }
 

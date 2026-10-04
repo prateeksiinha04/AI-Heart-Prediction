@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Heart Health Check</title>
+    <title>Heart Health Assessment | HealthPredict AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -270,8 +270,10 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="sidebar.css">
+    <link rel="stylesheet" href="professional.css">
 </head>
-<body>
+<body class="prediction-page">
 
     <!-- SIDEBAR NAVIGATION -->
     <aside class="sidebar">
@@ -285,16 +287,16 @@
             </div>
         </a>
 
-        <nav class="sidebar-menu">
-            <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-border-all"></i> <span class="nav-text">Dashboard</span></a>
-            <a href="heart-prediction.html" class="menu-item active"><i class="fa-solid fa-user-doctor"></i> <span class="nav-text">Health Prediction</span></a>
-            <a href="my-history.html" class="menu-item"><i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">My History</span></a>
-            <a href="health-records.html" class="menu-item"><i class="fa-solid fa-folder-medical"></i> <span class="nav-text">Health Records</span></a>
-            <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line"></i> <span class="nav-text">Charts & Trends</span></a>
-            <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart-circle-check"></i> <span class="nav-text">Recommendations</span></a>
-            <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear"></i> <span class="nav-text">Patient Profile</span></a>
+        <nav class="sidebar-menu" aria-label="Main navigation">
+            <a href="dashboard.html" class="menu-item"><i class="fa-solid fa-house" aria-hidden="true"></i> <span class="nav-text">Dashboard</span></a>
+            <a href="heart-prediction.html" class="menu-item active" aria-current="page"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> <span class="nav-text">Health Prediction</span></a>
+            <a href="my-history.html" class="menu-item"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span class="nav-text">My History</span></a>
+            <a href="health-records.html" class="menu-item"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> <span class="nav-text">Health Records</span></a>
+            <a href="charts-trends.html" class="menu-item"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span class="nav-text">Charts & Trends</span></a>
+            <a href="recommendations.html" class="menu-item"><i class="fa-solid fa-heart" aria-hidden="true"></i> <span class="nav-text">Recommendations</span></a>
+            <a href="profile-settings.html" class="menu-item"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span class="nav-text">Patient Profile</span></a>
             
-            <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="nav-text">Logout</span></a>
+            <a href="index.html" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> <span class="nav-text">Logout</span></a>
         </nav>
     </aside>
 
@@ -303,11 +305,11 @@
         <div class="container">
             <header class="form-header">
                 <i class="fa-solid fa-heart-pulse"></i>
-                <h1>Heart Health Risk Assessment</h1>
-                <p>Fill out these simple health details to check your heart risk score.</p>
+                <h1>Heart Health Assessment</h1>
+                <p>Complete this assessment to review an estimated health risk based on the information provided. Discuss the result with your healthcare professional; it is not a medical diagnosis.</p>
             </header>
 
-            <form id="heartRiskForm" novalidate onsubmit="handleFormSubmit(event)">
+            <form id="heartRiskForm" novalidate>
                 
                 <!-- SECTION 1 -->
                 <section class="form-section">
